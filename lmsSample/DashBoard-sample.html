@@ -7,6 +7,7 @@
   <style>
     :root{
       --accent:#2563eb; --bar:#93c5fd; --text:#333; --bg:#f5f6fa; --muted:#64748b; --card:#fff;
+      --hover:#3b82f6;
     }
     html { font-size: 18px; }
     body { margin:0; font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans JP",sans-serif; background:var(--bg); color:var(--text); }
@@ -22,7 +23,15 @@
     .header-right strong{ font-weight:600; }
 
     .container{ max-width:1280px; margin:2rem auto; padding:0 1rem; }
-    .card{ background:var(--card); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1.2rem; }
+    .card{
+      background:var(--card); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1.2rem;
+      border:2px solid transparent; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    .card.hoverable:hover{
+      border-color:var(--hover);
+      box-shadow:0 6px 16px rgba(59,130,246,.18);
+      transform:translateY(-2px);
+    }
 
     /* アナウンス */
     .announcement{ background:#fff7e6; border:1px solid #fbbf24; margin-bottom:1.5rem; }
@@ -42,14 +51,16 @@
     .day.muted{ background:#edf2f7; color:#94a3b8; }
     .day.active{ background:#60a5fa; color:#fff; }
 
-    /* 成績考査（横並びセクション） */
+    /* 成績考査（横並びセクション全体クリック） */
     .exam-section { margin: 2rem 0; }
     .exam-content {
       display:flex; align-items:center; gap:1.5rem;
-      background:#fff; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1.2rem;
-      cursor:pointer; transition:transform .2s, box-shadow .2s;
+      background:#fff; border-radius:12px; padding:1.2rem;
+      border:2px solid transparent; cursor:pointer;
+      transition:border-color .18s, box-shadow .18s, transform .18s;
+      box-shadow:0 2px 6px rgba(0,0,0,.08);
     }
-    .exam-content:hover { transform: translateY(-2px); box-shadow:0 6px 14px rgba(0,0,0,.12); }
+    .exam-content:hover { border-color:var(--hover); box-shadow:0 6px 14px rgba(59,130,246,.18); transform: translateY(-2px); }
     .exam-image img{ max-width:360px; border-radius:10px; display:block; }
     .exam-text h2{ margin:0 0 .4rem; font-size:1.5rem; color:#1e40af; }
     .exam-text .exam-next{ margin:0 0 .6rem; font-size:1rem; color:#374151; }
@@ -63,27 +74,33 @@
     .units{ display:grid; gap:1.2rem; grid-template-columns:repeat(4,1fr); margin-top:1rem; }
     @media (max-width:1100px){ .units{ grid-template-columns:repeat(2,1fr); } }
     @media (max-width:640px){ .units{ grid-template-columns:1fr; } }
-    .unit{ background:var(--card); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1rem; text-align:center; cursor:pointer; transition:transform .2s, box-shadow .2s; }
-    .unit:hover{ transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.12); }
+    .unit{ background:var(--card); border-radius:12px; padding:1rem; text-align:center; cursor:pointer;
+      transition:transform .2s, box-shadow .2s, border-color .18s; box-shadow:0 2px 6px rgba(0,0,0,.08); border:2px solid transparent; }
+    .unit:hover{ transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.12); border-color:var(--hover); }
     .unit h4{ margin:.3rem 0 .1rem; font-size:1.05rem; display:flex; align-items:center; justify-content:center; gap:.4rem; }
     .unit .title-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
 
-    /* 円グラフ（進捗）アニメ */
+    /* 円グラフ（“ぐるーっと回る”タイプ） */
     .circle{
-      --percent: 0%;
-      --color:#2563eb;
-      width:140px; height:140px; border-radius:50%;
-      background:conic-gradient(var(--color) var(--percent), #e5e7eb 0);
-      margin:.2rem auto .5rem; display:flex; align-items:center; justify-content:center;
-      transition: --percent 1.2s ease-out;  /* ← カスタムプロパティを滑らかに */
+      position: relative; width: 140px; height: 140px; border-radius: 50%;
+      background: #e5e7eb; margin:.2rem auto .5rem; display:flex; align-items:center; justify-content:center; overflow:hidden;
     }
+    .circle .fill{
+      position:absolute; inset:0; border-radius:50%;
+      clip: rect(0, 140px, 140px, 70px); /* 右半分だけ描画開始 */
+      background: var(--color, #2563eb);
+      transform: rotate(0deg); transform-origin:center;
+    }
+    .circle.animate .fill{ animation: spin 1.2s ease-out forwards; }
+    @keyframes spin { from{ transform: rotate(0deg); } to{ transform: rotate(var(--deg,0deg)); } }
+
     .progress-text{ font-weight:800; font-size:1.1rem; color:#222; }
     .unit p{ margin:.15rem 0; font-size:.9rem; color:#555; }
     .test-status{ font-size:.9rem; margin-top:.3rem; }
     .test-status.done{ color:#16a34a; }
     .test-status.pending{ color:#c2410c; }
 
-    /* チャート */
+    /* チャート（棒＋折れ線＋ツールチップ） */
     .chart-legend{ display:flex; gap:14px; font-size:.95rem; color:#555; margin-bottom:.6rem; }
     .legend-box{ width:14px; height:14px; border-radius:3px; display:inline-block; vertical-align:middle; margin-right:6px; }
     .legend-bar{ background:var(--bar); }
@@ -96,6 +113,10 @@
       white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; transition:opacity .12s;
     }
     .tooltip.visible{ opacity:1; }
+
+    /* レーダーチャート */
+    .radar-card .subtitle{ margin:.2rem 0 1rem; color:#64748b; font-size:.95rem; }
+    .radar-wrap{ position:relative; height:420px; }
   </style>
 </head>
 <body>
@@ -119,7 +140,7 @@
   <!-- 上段：カレンダー + 日別学習時間チャート -->
   <div class="top-grid">
     <!-- カレンダー -->
-    <div class="card">
+    <div class="card hoverable">
       <div class="calendar-header">
         <div class="calendar-title">2025年 9月</div>
         <div style="color:#94a3b8;font-size:.9rem">表示のみ</div>
@@ -131,8 +152,8 @@
       <div id="calendar" class="calendar"></div>
     </div>
 
-    <!-- チャート（棒＋折れ線＋ホバーTooltip） -->
-    <div class="card">
+    <!-- 棒＋折れ線 -->
+    <div class="card hoverable">
       <div class="chart-legend">
         <span><i class="legend-box legend-bar"></i>日別学習時間（h）</span>
         <span><i class="legend-box legend-line"></i>日別学習時間（折れ線）</span>
@@ -144,7 +165,7 @@
     </div>
   </div>
 
-  <!-- 成績考査：画像＋右側テキストの横並び（全体クリックで exam.html） -->
+  <!-- 成績考査：画像＋右側テキスト（クリックで exam.html） -->
   <section class="exam-section">
     <div class="exam-content" onclick="window.location.href='exam.html'">
       <div class="exam-image">
@@ -158,13 +179,22 @@
     </div>
   </section>
 
+  <!-- レーダーチャート：学習バランス（例） -->
+  <div class="card radar-card hoverable">
+    <h3 style="margin:.2rem 0 .4rem;">学習バランス（直近30日）</h3>
+    <p class="subtitle">理解度・応用力・正確性・学習速度・復習頻度のバランスを可視化</p>
+    <div class="radar-wrap">
+      <canvas id="radarChart"></canvas>
+    </div>
+  </div>
+
   <!-- ユニット一覧 -->
-  <h2 style="margin:.5rem 0 0.6rem;">ユニット一覧（新しい順）</h2>
+  <h2 style="margin:1rem 0 0.6rem;">ユニット一覧（新しい順）</h2>
   <div id="units" class="units"></div>
 </div>
 
 <script>
-  /* ===== 現在日時（ヘッダー中央） ===== */
+  /* ===== 現在日時 ===== */
   function updateDateTime() {
     const now = new Date();
     const opt = { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' };
@@ -195,7 +225,7 @@
     }
   }
 
-  /* ===== ユニット一覧（色分け・進捗％下・王冠・テスト状態） ===== */
+  /* ===== ユニット一覧（色分け・回転円・王冠・テスト状態） ===== */
   const palette = ['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0ea5e9','#059669'];
   const units = [
     { id:4, title:"ユニット4: 実践編", desc:"フロントエンド統合", date:"2025-03-01", watched: 14.5, testTaken:false },
@@ -207,6 +237,7 @@
 
   units.forEach((u, i)=>{
     const percent = Math.min(100, Math.round((u.watched/20)*100));
+    const deg = percent * 3.6;
     const color = palette[i % palette.length];
     const card = document.createElement('div');
     card.className = 'unit';
@@ -215,7 +246,10 @@
     const testClass = u.testTaken ? 'done' : 'pending';
     const testText  = u.testTaken ? '受験済み' : '未受験';
     card.innerHTML = `
-      <div class="circle" style="--percent:0%; --color:${color}"></div>
+      <div class="circle" style="--color:${color}; --deg:${deg}deg;">
+        <div class="fill"></div>
+        <div class="progress-text">${percent}%</div>
+      </div>
       <h4><span class="title-dot" style="background:${color}"></span>${u.title} ${crown}</h4>
       <p>${u.desc}</p>
       <p>公開日: ${u.date}</p>
@@ -223,10 +257,8 @@
       <div class="test-status ${testClass}">ユニットテスト：${testText}</div>
     `;
     unitsEl.appendChild(card);
-    // 円グラフをアニメで0→実値
-    setTimeout(()=>{
-      card.querySelector(".circle").style.setProperty("--percent", percent+"%");
-    }, 100 + i*120); // 少しずつディレイ
+    // ぐるっと回転開始
+    setTimeout(()=>{ card.querySelector(".circle").classList.add("animate"); }, 100 + i*200);
   });
 
   /* ===== 日別学習時間グラフ（棒＋折れ線＋ツールチップ＋アニメ） ===== */
@@ -254,7 +286,6 @@
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    // リサイズ時は再アニメ開始
     animStart = null; animProgress = 0;
     requestAnimationFrame(drawChartAnim);
   }
@@ -338,22 +369,19 @@
     layoutCache = { x0, y0, plotW, plotH, maxY, xCount };
   }
 
-  // ツールチップ（アニメ中も現在の値で表示）
+  // ツールチップ
   canvas.addEventListener('mousemove', (e)=>{
     if(!layoutCache) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const { x0, plotW, xCount, maxY, y0, plotH } = layoutCache;
     if (x < x0 || x > x0+plotW) { tooltip.classList.remove('visible'); return; }
-
     const rel = (x - x0) / plotW;
     let idx = Math.round(rel * xCount - 0.5);
     idx = Math.max(0, Math.min(xCount-1, idx));
-
     const v = studyHours[idx] * Math.max(animProgress, 0.001);
     const xx = x0 + (plotW*(idx+0.5)/xCount);
     const yy = y0 - plotH*(v/maxY);
-
     tooltip.textContent = `9/${idx+1} : ${v.toFixed(1)}h`;
     tooltip.style.left = (xx) + 'px';
     tooltip.style.top  = (yy) + 'px';
@@ -361,9 +389,8 @@
   });
   canvas.addEventListener('mouseleave', ()=> tooltip.classList.remove('visible'));
 
-  // 初期描画＆アニメ開始
-  (function init(){
-    // カンバス初期化
+  // 初回描画
+  (function initBars(){
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const parent = canvas.parentElement;
     canvas.style.width = parent.clientWidth + 'px';
@@ -373,6 +400,103 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
     requestAnimationFrame(drawChartAnim);
   })();
+
+  /* ===== レーダーチャート（キャンバス） ===== */
+  const radar = document.getElementById('radarChart');
+  const rctx = radar.getContext('2d');
+  function resizeRadar(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const parent = radar.parentElement;
+    radar.style.width = parent.clientWidth + 'px';
+    radar.style.height = parent.clientHeight + 'px';
+    radar.width = Math.floor(parent.clientWidth * dpr);
+    radar.height = Math.floor(parent.clientHeight * dpr);
+    rctx.setTransform(dpr,0,0,dpr,0,0);
+    animRadarStart = null;
+    requestAnimationFrame(drawRadarAnim);
+  }
+  window.addEventListener('resize', resizeRadar);
+
+  const labels = ["理解度","応用力","正確性","学習速度","復習頻度"];
+  const scores = [78, 66, 84, 72, 58]; // 0-100
+  let animRadarStart=null;
+
+  function drawRadar(progress=1){
+    const w = radar.clientWidth, h = radar.clientHeight;
+    rctx.clearRect(0,0,w,h);
+    const cx = w/2, cy = h/2, radius = Math.min(w,h)*0.35;
+    const max = 100;
+    const levels = 4; // 同心多角形の段数
+
+    // ガイド（同心多角形）
+    rctx.strokeStyle = '#cbd5e1';
+    rctx.fillStyle = '#f8fafc';
+    rctx.lineWidth = 1;
+    for(let l=1; l<=levels; l++){
+      const r = radius * (l/levels);
+      rctx.beginPath();
+      for(let i=0;i<labels.length;i++){
+        const ang = -Math.PI/2 + (i*2*Math.PI/labels.length);
+        const x = cx + r*Math.cos(ang);
+        const y = cy + r*Math.sin(ang);
+        if(i===0) rctx.moveTo(x,y); else rctx.lineTo(x,y);
+      }
+      rctx.closePath();
+      rctx.stroke();
+    }
+
+    // 軸 + ラベル
+    rctx.strokeStyle = '#e2e8f0';
+    rctx.fillStyle = '#64748b';
+    rctx.font = '12.5px system-ui';
+    for(let i=0;i<labels.length;i++){
+      const ang = -Math.PI/2 + (i*2*Math.PI/labels.length);
+      const x = cx + radius*Math.cos(ang);
+      const y = cy + radius*Math.sin(ang);
+      rctx.beginPath(); rctx.moveTo(cx,cy); rctx.lineTo(x,y); rctx.stroke();
+      const lx = cx + (radius+18)*Math.cos(ang);
+      const ly = cy + (radius+18)*Math.sin(ang);
+      rctx.textAlign = (Math.cos(ang)>0.1)?'left':(Math.cos(ang)<-0.1?'right':'center');
+      rctx.textBaseline = (Math.sin(ang)>0.1)?'top':(Math.sin(ang)<-0.1?'bottom':'middle');
+      rctx.fillText(labels[i], lx, ly);
+    }
+
+    // データポリゴン（アニメで半径スケール）
+    const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb';
+    rctx.fillStyle = color + '33'; // 透明塗り
+    rctx.strokeStyle = color;
+    rctx.lineWidth = 2;
+    rctx.beginPath();
+    for(let i=0;i<labels.length;i++){
+      const ratio = (scores[i]/max) * progress;
+      const ang = -Math.PI/2 + (i*2*Math.PI/labels.length);
+      const x = cx + (radius*ratio)*Math.cos(ang);
+      const y = cy + (radius*ratio)*Math.sin(ang);
+      if(i===0) rctx.moveTo(x,y); else rctx.lineTo(x,y);
+    }
+    rctx.closePath();
+    rctx.fill(); rctx.stroke();
+
+    // 頂点丸
+    rctx.fillStyle = color;
+    for(let i=0;i<labels.length;i++){
+      const ratio = (scores[i]/max) * progress;
+      const ang = -Math.PI/2 + (i*2*Math.PI/labels.length);
+      const x = cx + (radius*ratio)*Math.cos(ang);
+      const y = cy + (radius*ratio)*Math.sin(ang);
+      rctx.beginPath(); rctx.arc(x,y,3,0,Math.PI*2); rctx.fill();
+    }
+  }
+
+  function drawRadarAnim(ts){
+    if(!animRadarStart) animRadarStart = ts;
+    const p = Math.min((ts - animRadarStart)/1200, 1);
+    drawRadar(p);
+    if(p<1) requestAnimationFrame(drawRadarAnim);
+  }
+
+  // 初期描画
+  (function initRadar(){ resizeRadar(); })();
 </script>
 </body>
 </html>
