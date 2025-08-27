@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>学習者ダッシュボード</title>
+  <style>
+    :root{
+      --accent:#2563eb; --bar:#93c5fd; --text:#333; --bg:#f5f6fa; --muted:#64748b; --card:#fff;
+    }
+    html { font-size: 18px; }
+    body { margin:0; font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans JP",sans-serif; background:var(--bg); color:var(--text); }
+
+    /* ヘッダー */
+    header {
+      background:#1e40af; color:#fff; padding:1.1rem 1.2rem;
+      display:flex; justify-content:space-between; align-items:center; gap:1rem;
+    }
+    header h1 { margin:0; font-size:1.35rem; flex:1; }
+    .header-center { font-size:.95rem; color:#e0e7ff; flex:1; text-align:center; }
+    .header-right { font-size:.95rem; display:flex; gap:1.2rem; }
+    .header-right strong{ font-weight:600; }
+
+    .container{ max-width:1280px; margin:2rem auto; padding:0 1rem; }
+    .card{ background:var(--card); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1.2rem; }
+
+    /* アナウンス */
+    .announcement{ background:#fff7e6; border:1px solid #fbbf24; margin-bottom:1.5rem; }
+    .announcement h3{ margin:.2rem 0 .5rem; font-size:1.05rem; color:#b45309; }
+    .announcement p{ margin:0; color:#92400e; font-size:.95rem; }
+
+    /* 上段：カレンダー + チャート */
+    .top-grid{ display:grid; gap:1.2rem; align-items:stretch; grid-template-columns: 1.1fr 1.4fr; }
+    @media (max-width:900px){ .top-grid{ grid-template-columns:1fr; } }
+
+    /* カレンダー */
+    .calendar-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem; }
+    .calendar-title{ font-weight:700; color:#111; }
+    .weekday{ color:var(--muted); font-size:.9rem; text-align:center; }
+    .calendar{ display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; margin-top:.4rem; }
+    .day{ background:#e5e7eb; text-align:center; padding:.6rem 0; border-radius:8px; font-size:.95rem; user-select:none; }
+    .day.muted{ background:#edf2f7; color:#94a3b8; }
+    .day.active{ background:#60a5fa; color:#fff; }
+
+    /* 成績考査（横並びセクション） */
+    .exam-section { margin: 2rem 0; }
+    .exam-content {
+      display:flex; align-items:center; gap:1.5rem;
+      background:#fff; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1.2rem;
+      cursor:pointer; transition:transform .2s, box-shadow .2s;
+    }
+    .exam-content:hover { transform: translateY(-2px); box-shadow:0 6px 14px rgba(0,0,0,.12); }
+    .exam-image img{ max-width:360px; border-radius:10px; display:block; }
+    .exam-text h2{ margin:0 0 .4rem; font-size:1.5rem; color:#1e40af; }
+    .exam-text .exam-next{ margin:0 0 .6rem; font-size:1rem; color:#374151; }
+    .exam-text .exam-desc{ margin:0; font-size:.95rem; color:#555; }
+    @media (max-width:700px){
+      .exam-content{ flex-direction:column; text-align:center; }
+      .exam-image img{ max-width:100%; }
+    }
+
+    /* ユニット一覧（4列→2列→1列） */
+    .units{ display:grid; gap:1.2rem; grid-template-columns:repeat(4,1fr); margin-top:1rem; }
+    @media (max-width:1100px){ .units{ grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:640px){ .units{ grid-template-columns:1fr; } }
+    .unit{ background:var(--card); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1rem; text-align:center; cursor:pointer; transition:transform .2s, box-shadow .2s; }
+    .unit:hover{ transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.12); }
+    .unit h4{ margin:.3rem 0 .1rem; font-size:1.05rem; display:flex; align-items:center; justify-content:center; gap:.4rem; }
+    .unit .title-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+    /* 円グラフ（進捗）アニメ */
+    .circle{
+      --percent: 0%;
+      --color:#2563eb;
+      width:140px; height:140px; border-radius:50%;
+      background:conic-gradient(var(--color) var(--percent), #e5e7eb 0);
+      margin:.2rem auto .5rem; display:flex; align-items:center; justify-content:center;
+      transition: --percent 1.2s ease-out;  /* ← カスタムプロパティを滑らかに */
+    }
+    .progress-text{ font-weight:800; font-size:1.1rem; color:#222; }
+    .unit p{ margin:.15rem 0; font-size:.9rem; color:#555; }
+    .test-status{ font-size:.9rem; margin-top:.3rem; }
+    .test-status.done{ color:#16a34a; }
+    .test-status.pending{ color:#c2410c; }
+
+    /* チャート */
+    .chart-legend{ display:flex; gap:14px; font-size:.95rem; color:#555; margin-bottom:.6rem; }
+    .legend-box{ width:14px; height:14px; border-radius:3px; display:inline-block; vertical-align:middle; margin-right:6px; }
+    .legend-bar{ background:var(--bar); }
+    .legend-line{ background:var(--accent); }
+    .chart-wrap{ position:relative; height:420px; }
+    canvas{ display:block; width:100%; height:100%; }
+    .tooltip{
+      position:absolute; background:#111; color:#fff; padding:.45rem .6rem;
+      border-radius:8px; font-size:.9rem; pointer-events:none; transform:translate(-50%,-120%);
+      white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; transition:opacity .12s;
+    }
+    .tooltip.visible{ opacity:1; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>学習者ダッシュボード</h1>
+  <div class="header-center" id="datetime"></div>
+  <div class="header-right">
+    <span>ID: <strong>learner001</strong></span>
+    <span>名前: <strong>サンプル太郎</strong></span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- アナウンス -->
+  <div class="card announcement">
+    <h3>📢 お知らせ</h3>
+    <p>成績考査は 9/20（Sat）10:00〜18:00 に実施予定です。受験ルールは成績考査ページをご確認ください。</p>
+  </div>
+
+  <!-- 上段：カレンダー + 日別学習時間チャート -->
+  <div class="top-grid">
+    <!-- カレンダー -->
+    <div class="card">
+      <div class="calendar-header">
+        <div class="calendar-title">2025年 9月</div>
+        <div style="color:#94a3b8;font-size:.9rem">表示のみ</div>
+      </div>
+      <div class="calendar" id="weekday">
+        <div class="weekday">月</div><div class="weekday">火</div><div class="weekday">水</div>
+        <div class="weekday">木</div><div class="weekday">金</div><div class="weekday">土</div><div class="weekday">日</div>
+      </div>
+      <div id="calendar" class="calendar"></div>
+    </div>
+
+    <!-- チャート（棒＋折れ線＋ホバーTooltip） -->
+    <div class="card">
+      <div class="chart-legend">
+        <span><i class="legend-box legend-bar"></i>日別学習時間（h）</span>
+        <span><i class="legend-box legend-line"></i>日別学習時間（折れ線）</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="studyChart"></canvas>
+        <div id="tooltip" class="tooltip"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 成績考査：画像＋右側テキストの横並び（全体クリックで exam.html） -->
+  <section class="exam-section">
+    <div class="exam-content" onclick="window.location.href='exam.html'">
+      <div class="exam-image">
+        <img src="Designer.jpeg" alt="成績考査">
+      </div>
+      <div class="exam-text">
+        <h2>成績考査</h2>
+        <p class="exam-next">次回成績考査は <strong>9/30</strong> です。</p>
+        <p class="exam-desc">受験状況や結果を確認できます</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ユニット一覧 -->
+  <h2 style="margin:.5rem 0 0.6rem;">ユニット一覧（新しい順）</h2>
+  <div id="units" class="units"></div>
+</div>
+
+<script>
+  /* ===== 現在日時（ヘッダー中央） ===== */
+  function updateDateTime() {
+    const now = new Date();
+    const opt = { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' };
+    document.getElementById("datetime").textContent = now.toLocaleString('ja-JP', opt);
+  }
+  setInterval(updateDateTime, 1000); updateDateTime();
+
+  /* ===== 2025-09 カレンダー（表示のみ） ===== */
+  const daysInMonth = 30;
+  const studied = Array.from({length:daysInMonth}, (_,i)=> (i%2===0 ? 1 : 0)); // ダミー：偶数日だけ学習あり
+  const calEl = document.getElementById('calendar');
+  const first = new Date(2025, 8, 1); // 2025-09-01
+  const firstWeekday = (first.getDay()+6)%7; // 月=0..日=6
+  const totalCells = firstWeekday + daysInMonth;
+  const rows = Math.ceil(totalCells/7);
+  for(let r=0; r<rows; r++){
+    for(let c=0; c<7; c++){
+      const idx = r*7 + c;
+      const dateNum = idx - firstWeekday + 1;
+      const cell = document.createElement('div');
+      if(dateNum < 1 || dateNum > daysInMonth){
+        cell.className = 'day muted'; cell.textContent = '';
+      }else{
+        cell.className = 'day' + (studied[dateNum-1] ? ' active' : '');
+        cell.textContent = String(dateNum);
+      }
+      calEl.appendChild(cell);
+    }
+  }
+
+  /* ===== ユニット一覧（色分け・進捗％下・王冠・テスト状態） ===== */
+  const palette = ['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0ea5e9','#059669'];
+  const units = [
+    { id:4, title:"ユニット4: 実践編", desc:"フロントエンド統合", date:"2025-03-01", watched: 14.5, testTaken:false },
+    { id:3, title:"ユニット3: 発展編", desc:"APIとDB",            date:"2025-02-15", watched: 20.0, testTaken:true  },
+    { id:2, title:"ユニット2: 応用編", desc:"Webアプリ基礎",     date:"2025-01-10", watched: 5.0,  testTaken:false },
+    { id:1, title:"ユニット1: 基礎編", desc:"プログラミング入門", date:"2024-12-01", watched: 20.0, testTaken:true  }
+  ].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const unitsEl = document.getElementById('units');
+
+  units.forEach((u, i)=>{
+    const percent = Math.min(100, Math.round((u.watched/20)*100));
+    const color = palette[i % palette.length];
+    const card = document.createElement('div');
+    card.className = 'unit';
+    card.onclick = () => window.location.href = `unit.html?id=${u.id}`;
+    const crown = percent>=100 ? '👑' : '';
+    const testClass = u.testTaken ? 'done' : 'pending';
+    const testText  = u.testTaken ? '受験済み' : '未受験';
+    card.innerHTML = `
+      <div class="circle" style="--percent:0%; --color:${color}"></div>
+      <h4><span class="title-dot" style="background:${color}"></span>${u.title} ${crown}</h4>
+      <p>${u.desc}</p>
+      <p>公開日: ${u.date}</p>
+      <div class="progress-text">${percent}%（${u.watched.toFixed(1)}h / 20h）</div>
+      <div class="test-status ${testClass}">ユニットテスト：${testText}</div>
+    `;
+    unitsEl.appendChild(card);
+    // 円グラフをアニメで0→実値
+    setTimeout(()=>{
+      card.querySelector(".circle").style.setProperty("--percent", percent+"%");
+    }, 100 + i*120); // 少しずつディレイ
+  });
+
+  /* ===== 日別学習時間グラフ（棒＋折れ線＋ツールチップ＋アニメ） ===== */
+  const studyHours = Array.from({length: daysInMonth}, (_,i)=>{
+    const d = new Date(2025, 8, i+1);
+    const w = d.getDay(); // Sun=0
+    let base = (w===0 || w===6) ? Math.random()*2.0 : 1 + Math.random()*3.0;
+    return +base.toFixed(1);
+  });
+
+  const canvas = document.getElementById('studyChart');
+  const tooltip = document.getElementById('tooltip');
+  const ctx = canvas.getContext('2d');
+  let layoutCache = null;
+  let animStart = null;
+  let animProgress = 0;
+
+  function resizeCanvas(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const parent = canvas.parentElement;
+    const w = parent.clientWidth;
+    const h = parent.clientHeight;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    // リサイズ時は再アニメ開始
+    animStart = null; animProgress = 0;
+    requestAnimationFrame(drawChartAnim);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function drawChartAnim(timestamp){
+    if(!animStart) animStart = timestamp;
+    animProgress = Math.min((timestamp - animStart) / 1200, 1); // 1.2秒
+    drawChart(animProgress);
+    if(animProgress < 1) requestAnimationFrame(drawChartAnim);
+  }
+
+  function drawChart(progress=1){
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    ctx.clearRect(0,0,w,h);
+
+    const pad = { left: 48, right: 18, top: 18, bottom: 34 };
+    const xCount = studyHours.length; // 30
+    const maxY = Math.max(4, Math.ceil(Math.max(...studyHours)*1.1));
+    const x0 = pad.left, y0 = h - pad.bottom;
+    const plotW = w - pad.left - pad.right;
+    const plotH = h - pad.top - pad.bottom;
+
+    // グリッド
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for(let y=0; y<=maxY; y++){
+      const yy = y0 - plotH*(y/maxY);
+      ctx.moveTo(x0, yy); ctx.lineTo(x0 + plotW, yy);
+    }
+    ctx.stroke();
+
+    // ラベル
+    ctx.fillStyle = '#475569';
+    ctx.font = '12.5px system-ui';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for(let y=0; y<=maxY; y++){
+      const yy = y0 - plotH*(y/maxY);
+      ctx.fillText(String(y), x0-8, yy);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for(let i=0;i<xCount;i++){
+      if(i%5!==0 && i!==xCount-1) continue;
+      const xx = x0 + (plotW*(i+0.5)/xCount);
+      ctx.fillText(`9/${i+1}`, xx, y0+8);
+    }
+
+    // 棒（アニメ：値にprogressを掛ける）
+    const barGap = 4;
+    const barW = Math.max(4, (plotW / xCount) - barGap);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bar').trim() || '#93c5fd';
+    for(let i=0;i<xCount;i++){
+      const v = studyHours[i] * progress;
+      const x = x0 + (plotW * i / xCount) + barGap/2;
+      const hPx = plotH * (v / maxY);
+      const y = y0 - hPx;
+      ctx.fillRect(x, y, barW, hPx);
+    }
+
+    // 折れ線（アニメ：値にprogressを掛ける）
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for(let i=0;i<xCount;i++){
+      const v = studyHours[i] * progress;
+      const xx = x0 + (plotW*(i+0.5)/xCount);
+      const yy = y0 - plotH*(v/maxY);
+      if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+    }
+    ctx.stroke();
+
+    // 点
+    ctx.fillStyle = ctx.strokeStyle;
+    for(let i=0;i<xCount;i++){
+      const v = studyHours[i] * progress;
+      const xx = x0 + (plotW*(i+0.5)/xCount);
+      const yy = y0 - plotH*(v/maxY);
+      ctx.beginPath(); ctx.arc(xx,yy,3.5,0,Math.PI*2); ctx.fill();
+    }
+
+    layoutCache = { x0, y0, plotW, plotH, maxY, xCount };
+  }
+
+  // ツールチップ（アニメ中も現在の値で表示）
+  canvas.addEventListener('mousemove', (e)=>{
+    if(!layoutCache) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const { x0, plotW, xCount, maxY, y0, plotH } = layoutCache;
+    if (x < x0 || x > x0+plotW) { tooltip.classList.remove('visible'); return; }
+
+    const rel = (x - x0) / plotW;
+    let idx = Math.round(rel * xCount - 0.5);
+    idx = Math.max(0, Math.min(xCount-1, idx));
+
+    const v = studyHours[idx] * Math.max(animProgress, 0.001);
+    const xx = x0 + (plotW*(idx+0.5)/xCount);
+    const yy = y0 - plotH*(v/maxY);
+
+    tooltip.textContent = `9/${idx+1} : ${v.toFixed(1)}h`;
+    tooltip.style.left = (xx) + 'px';
+    tooltip.style.top  = (yy) + 'px';
+    tooltip.classList.add('visible');
+  });
+  canvas.addEventListener('mouseleave', ()=> tooltip.classList.remove('visible'));
+
+  // 初期描画＆アニメ開始
+  (function init(){
+    // カンバス初期化
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const parent = canvas.parentElement;
+    canvas.style.width = parent.clientWidth + 'px';
+    canvas.style.height = parent.clientHeight + 'px';
+    canvas.width = Math.floor(parent.clientWidth * dpr);
+    canvas.height = Math.floor(parent.clientHeight * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    requestAnimationFrame(drawChartAnim);
+  })();
+</script>
+</body>
+</html>
