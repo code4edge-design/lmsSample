@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+units<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
@@ -256,28 +256,58 @@ canvas{ display:block; width:100%; height:100%; }
   const unitsEl = document.getElementById('units');
 
   units.forEach((u, i)=>{
-    const percent = Math.min(100, Math.round((u.watched/20)*100));
-    const color = palette[i % palette.length];
-    const card = document.createElement('div');
-    card.className = 'unit';
-    card.onclick = () => window.location.href = `unit.html?id=${u.id}`;
-    const crown = percent>=100 ? '👑' : '';
-    const testClass = u.testTaken ? 'done' : 'pending';
-    const testText  = u.testTaken ? '受験済み' : '未受験';
-    card.innerHTML = `
-      <div class="circle" style="--percent:0%; --color:${color}"></div>
-      <h4><span class="title-dot" style="background:${color}"></span>${u.title} ${crown}</h4>
-      <p>${u.desc}</p>
-      <p>公開日: ${u.date}</p>
-      <div class="progress-text">${percent}%（${u.watched.toFixed(1)}h / 20h）</div>
-      <div class="test-status ${testClass}">ユニットテスト：${testText}</div>
-    `;
-    unitsEl.appendChild(card);
-    // 円グラフをアニメで0→実値
-    setTimeout(()=>{
-      card.querySelector(".circle").style.setProperty("--percent", percent+"%");
-    }, 100 + i*120); // 少しずつディレイ
-  });
+  const percent = Math.min(100, Math.round((u.watched/20)*100));
+  const color = palette[i % palette.length];
+
+  const card = document.createElement('div');
+  card.className = 'unit';
+  card.onclick = () => window.location.href = `unit.html?id=${u.id}`;
+
+  const crown = percent>=100 ? '👑' : '';
+  const testClass = u.testTaken ? 'done' : 'pending';
+  const testText  = u.testTaken ? '受験済み' : '未受験';
+
+  card.innerHTML = `
+    <div class="circle-svg">
+      <svg viewBox="0 0 120 120" width="140" height="140">
+        <!-- 背景グレー円 -->
+        <circle cx="60" cy="60" r="54" stroke="#e5e7eb" stroke-width="12" fill="none" />
+        <!-- 進捗カラー円 -->
+        <circle 
+          class="progress" 
+          cx="60" cy="60" r="54" 
+          stroke="${color}" 
+          stroke-width="12" 
+          fill="none"
+          stroke-linecap="round"
+          stroke-dasharray="${2 * Math.PI * 54}"
+          stroke-dashoffset="${2 * Math.PI * 54}"
+        />
+      </svg>
+      <div class="progress-text">${percent}%</div>
+    </div>
+    <h4><span class="title-dot" style="background:${color}"></span>${u.title} ${crown}</h4>
+    <p>${u.desc}</p>
+    <p>公開日: ${u.date}</p>
+    <div class="progress-text">${percent}%（${u.watched.toFixed(1)}h / 20h）</div>
+    <div class="test-status ${testClass}">ユニットテスト：${testText}</div>
+  `;
+  unitsEl.appendChild(card);
+
+  // 円グラフをアニメーションで描画
+  const circle = card.querySelector(".progress");
+  const length = 2 * Math.PI * 54;
+  setTimeout(()=>{
+    circle.animate([
+      { strokeDashoffset: length },
+      { strokeDashoffset: length * (1 - percent/100) }
+    ], {
+      duration: 1500,
+      easing: "ease-out",
+      fill: "forwards"
+    });
+  }, 200 + i*200);
+});
 
   /* ===== 日別学習時間グラフ（棒＋折れ線＋ツールチップ＋アニメ） ===== */
   const studyHours = Array.from({length: daysInMonth}, (_,i)=>{
