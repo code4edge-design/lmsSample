@@ -5,102 +5,149 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>学習者ダッシュボード</title>
   <style>
-    :root{
-      --accent:#2563eb; --bar:#93c5fd; --text:#333; --bg:#f5f6fa; --muted:#64748b; --card:#fff;
-    }
-    html { font-size: 18px; }
-    body { margin:0; font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans JP",sans-serif; background:var(--bg); color:var(--text); }
+    /* これを <style> の先頭〜既存のルート/レイアウト定義と置き換え */
+:root{
+  --accent:#2563eb; --bar:#93c5fd; --text:#333; --bg:#f5f6fa; --muted:#64748b; --card:#fff;
+  --hover:#3b82f6;
+}
 
-    /* ヘッダー */
-    header {
-      background:#1e40af; color:#fff; padding:1.1rem 1.2rem;
-      display:flex; justify-content:space-between; align-items:center; gap:1rem;
-    }
-    header h1 { margin:0; font-size:1.35rem; flex:1; }
-    .header-center { font-size:.95rem; color:#e0e7ff; flex:1; text-align:center; }
-    .header-right { font-size:.95rem; display:flex; gap:1.2rem; }
-    .header-right strong{ font-weight:600; }
+/* 幅のズレ防止（padding/ border を幅計算に含める） */
+*, *::before, *::after { box-sizing: border-box; }
 
-    .container{ max-width:1280px; margin:2rem auto; padding:0 1rem; }
-    .card{ background:var(--card); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1.2rem; }
+html { font-size: 18px; }
+body {
+  margin:0;
+  font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;
+  background:var(--bg); color:var(--text);
+  overflow-x:hidden; /* 横スクロール抑止 */
+}
 
-    /* アナウンス */
-    .announcement{ background:#fff7e6; border:1px solid #fbbf24; margin-bottom:1.5rem; }
-    .announcement h3{ margin:.2rem 0 .5rem; font-size:1.05rem; color:#b45309; }
-    .announcement p{ margin:0; color:#92400e; font-size:.95rem; }
+/* ヘッダーは左右詰め＋2段目情報 */
+header {
+  background:#1e40af; color:#fff;
+  padding:.9rem 1rem;
+  display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+}
+header h1 { margin:0; font-size:1.35rem; letter-spacing:.06em; }
+.header-center { font-size:.95rem; color:#e0e7ff; text-align:center; flex:1; }
+.header-right { font-size:.95rem; display:flex; gap:1rem; flex-wrap:wrap; }
+.header-right strong{ font-weight:700; }
 
-    /* 上段：カレンダー + チャート */
-    .top-grid{ display:grid; gap:1.2rem; align-items:stretch; grid-template-columns: 1.1fr 1.4fr; }
-    @media (max-width:900px){ .top-grid{ grid-template-columns:1fr; } }
+/* スマホ幅ではタイトル（ヘッダーの）は非表示 */
+@media (max-width:640px){
+  header h1{ display:none; }
+  header{ flex-wrap:wrap; }
+  .header-center, .header-right{ width:100%; text-align:left; }
+}
 
-    /* カレンダー */
-    .calendar-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem; }
-    .calendar-title{ font-weight:700; color:#111; }
-    .weekday{ color:var(--muted); font-size:.9rem; text-align:center; }
-    .calendar{ display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; margin-top:.4rem; }
-    .day{ background:#e5e7eb; text-align:center; padding:.6rem 0; border-radius:8px; font-size:.95rem; user-select:none; }
-    .day.muted{ background:#edf2f7; color:#94a3b8; }
-    .day.active{ background:#60a5fa; color:#fff; }
+/* コンテナ幅を “画面幅のほぼいっぱい” にしつつPCでは最大幅を制限 */
+.container{
+  width:min(100%, 1040px);                 /* 画面が狭い時は100%、広い時は最大1040px */
+  margin:clamp(8px, 2vw, 24px) auto;       /* 上下の余白をデバイスに合わせて可変 */
+  padding:clamp(8px, 2.4vw, 20px);         /* 内側の余白も可変に */
+}
 
-    /* 成績考査（横並びセクション） */
-    .exam-section { margin: 2rem 0; }
-    .exam-content {
-      display:flex; align-items:center; gap:1.5rem;
-      background:#fff; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1.2rem;
-      cursor:pointer; transition:transform .2s, box-shadow .2s;
-    }
-    .exam-content:hover { transform: translateY(-2px); box-shadow:0 6px 14px rgba(0,0,0,.12); }
-    .exam-image img{ max-width:360px; border-radius:10px; display:block; }
-    .exam-text h2{ margin:0 0 .4rem; font-size:1.5rem; color:#1e40af; }
-    .exam-text .exam-next{ margin:0 0 .6rem; font-size:1rem; color:#374151; }
-    .exam-text .exam-desc{ margin:0; font-size:.95rem; color:#555; }
-    @media (max-width:700px){
-      .exam-content{ flex-direction:column; text-align:center; }
-      .exam-image img{ max-width:100%; }
-    }
+/* 汎用カード */
+.card{
+  background:var(--card);
+  border-radius:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+  padding:clamp(.9rem, 2.2vw, 1.2rem);
+  border:2px solid transparent;
+  transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.card.hoverable:hover{
+  border-color:var(--hover);
+  box-shadow:0 6px 16px rgba(59,130,246,.18);
+  transform:translateY(-2px);
+}
 
-    /* ユニット一覧（4列→2列→1列） */
-    .units{ display:grid; gap:1.2rem; grid-template-columns:repeat(4,1fr); margin-top:1rem; }
-    @media (max-width:1100px){ .units{ grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:640px){ .units{ grid-template-columns:1fr; } }
-    .unit{ background:var(--card); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:1rem; text-align:center; cursor:pointer; transition:transform .2s, box-shadow .2s; }
-    .unit:hover{ transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.12); }
-    .unit h4{ margin:.3rem 0 .1rem; font-size:1.05rem; display:flex; align-items:center; justify-content:center; gap:.4rem; }
-    .unit .title-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+/* 画像は常に枠内に収める */
+img{ max-width:100%; height:auto; display:block; }
 
-    /* 円グラフ（進捗）アニメ */
-    .circle{
-      --percent: 0%;
-      --color:#2563eb;
-      width:140px; height:140px; border-radius:50%;
-      background:conic-gradient(var(--color) var(--percent), #e5e7eb 0);
-      margin:.2rem auto .5rem; display:flex; align-items:center; justify-content:center;
-      transition: --percent 1.2s ease-out;  /* ← カスタムプロパティを滑らかに */
-    }
-    .progress-text{ font-weight:800; font-size:1.1rem; color:#222; }
-    .unit p{ margin:.15rem 0; font-size:.9rem; color:#555; }
-    .test-status{ font-size:.9rem; margin-top:.3rem; }
-    .test-status.done{ color:#16a34a; }
-    .test-status.pending{ color:#c2410c; }
+/* レイアウト：上段（カレンダー＋グラフ） */
+.top-grid{
+  display:grid; gap:1.2rem; align-items:stretch;
+  grid-template-columns: 1.05fr 1.35fr;
+}
+@media (max-width:900px){ .top-grid{ grid-template-columns:1fr; } }
 
-    /* チャート */
-    .chart-legend{ display:flex; gap:14px; font-size:.95rem; color:#555; margin-bottom:.6rem; }
-    .legend-box{ width:14px; height:14px; border-radius:3px; display:inline-block; vertical-align:middle; margin-right:6px; }
-    .legend-bar{ background:var(--bar); }
-    .legend-line{ background:var(--accent); }
-    .chart-wrap{ position:relative; height:420px; }
-    canvas{ display:block; width:100%; height:100%; }
-    .tooltip{
-      position:absolute; background:#111; color:#fff; padding:.45rem .6rem;
-      border-radius:8px; font-size:.9rem; pointer-events:none; transform:translate(-50%,-120%);
-      white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; transition:opacity .12s;
-    }
-    .tooltip.visible{ opacity:1; }
+/* カレンダー */
+.calendar-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem; }
+.calendar-title{ font-weight:700; color:#111; }
+.weekday{ color:var(--muted); font-size:.9rem; text-align:center; }
+.calendar{ display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; margin-top:.4rem; }
+.day{ background:#e5e7eb; text-align:center; padding:.6rem 0; border-radius:8px; font-size:.95rem; user-select:none; }
+.day.muted{ background:#edf2f7; color:#94a3b8; }
+.day.active{ background:#60a5fa; color:#fff; }
+
+/* 成績考査（横並び） */
+.exam-section { margin: 1.2rem 0 1.6rem; }
+.exam-content{
+  display:flex; align-items:center; gap:1.2rem;
+  background:#fff; border-radius:12px; padding:1rem;
+  border:2px solid transparent; cursor:pointer;
+  transition:border-color .18s, box-shadow .18s, transform .18s;
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+.exam-content:hover { border-color:var(--hover); box-shadow:0 6px 14px rgba(59,130,246,.18); transform: translateY(-2px); }
+.exam-image img{ max-width:360px; border-radius:10px; }
+@media (max-width:700px){
+  .exam-content{ flex-direction:column; text-align:center; }
+  .exam-image img{ max-width:100%; }
+}
+
+/* ユニット一覧：4→2→1列 */
+.units{ display:grid; gap:1.1rem; grid-template-columns:repeat(4,1fr); margin-top:1rem; }
+@media (max-width:1100px){ .units{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:640px){ .units{ grid-template-columns:1fr; } }
+.unit{
+  background:var(--card); border-radius:12px; padding:1rem; text-align:center; cursor:pointer;
+  transition:transform .2s, box-shadow .2s, border-color .18s;
+  box-shadow:0 2px 6px rgba(0,0,0,.08); border:2px solid transparent;
+}
+.unit:hover{ transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.12); border-color:var(--hover); }
+.unit h4{ margin:.3rem 0 .1rem; font-size:1.05rem; display:flex; align-items:center; justify-content:center; gap:.4rem; }
+.unit .title-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+/* 円グラフ（ぐるっと回る版） */
+.circle{
+  position: relative; width: 140px; height: 140px; border-radius: 50%;
+  background: #e5e7eb; margin:.2rem auto .5rem; display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.circle .fill{ position:absolute; inset:0; border-radius:50%; clip: rect(0, 140px, 140px, 70px); background: var(--color, #2563eb); transform: rotate(0deg); transform-origin:center; }
+.circle.animate .fill{ animation: spin 1.2s ease-out forwards; }
+@keyframes spin { from{ transform: rotate(0deg); } to{ transform: rotate(var(--deg,0deg)); } }
+.progress-text{ font-weight:800; font-size:1.05rem; color:#222; }
+.unit p{ margin:.15rem 0; font-size:.9rem; color:#555; }
+.test-status{ font-size:.9rem; margin-top:.3rem; }
+.test-status.done{ color:#16a34a; }
+.test-status.pending{ color:#c2410c; }
+
+/* グラフ（棒＋折れ線） */
+.chart-legend{ display:flex; gap:14px; font-size:.95rem; color:#555; margin-bottom:.6rem; }
+.legend-box{ width:14px; height:14px; border-radius:3px; display:inline-block; vertical-align:middle; margin-right:6px; }
+.legend-bar{ background:var(--bar); }
+.legend-line{ background:var(--accent); }
+.chart-wrap{ position:relative; height:420px; }
+canvas{ display:block; width:100%; height:100%; }
+.tooltip{
+  position:absolute; background:#111; color:#fff; padding:.45rem .6rem;
+  border-radius:8px; font-size:.9rem; pointer-events:none; transform:translate(-50%,-120%);
+  white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; transition:opacity .12s;
+}
+.tooltip.visible{ opacity:1; }
+
+/* スマホ時は少し大きく見えるよう全体スケールを最適化 */
+@media (max-width:480px){
+  html{ font-size:16px; }            /* 文字を少し抑える＝横幅が広く使える */
+  .chart-wrap{ height:300px; }       /* グラフ高さも調整 */
+}
+
   </style>
 </head>
 <body>
 <header>
-  <h1>学習者ダッシュボード</h1>
   <div class="header-center" id="datetime"></div>
   <div class="header-right">
     <span>ID: <strong>learner001</strong></span>
@@ -109,6 +156,9 @@
 </header>
 
 <div class="container">
+
+  <!-- 大見出し -->
+  <h1 style="font-size:2rem; font-weight:700; margin:0 0 1rem; color:#1e3a8a;">Learning Dashboard</h1>
 
   <!-- アナウンス -->
   <div class="card announcement">
